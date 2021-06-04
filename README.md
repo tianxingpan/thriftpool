@@ -5,4 +5,5 @@
 ## 版本依赖
 thrift-0.9.3
 
-
+## 使用说明
+具体的使用方法可以参考[thrift_client.go](./example/thrift_client.go)
