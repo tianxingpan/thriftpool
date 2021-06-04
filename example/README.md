@@ -6,9 +6,12 @@ make
 ```
 
 * **Run Thrift server**
+
 |./thrift_server|
 |:--|
 
+
 * **Run Thrift client**
+
 |./thrift_client -n=1000000 -c=100 -max_size=100|
 |:--|
