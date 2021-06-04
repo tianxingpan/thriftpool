@@ -22,15 +22,52 @@ type ThriftConn struct {
 // thrift连接池
 type ThriftPool struct {
 	Endpoint		string				// 服务端的端点
-	DialTimeout		int32				// 拨号超时/连接超时（单位：秒）
-	IdleTimeout		int32				// 空闲连接超时时长（单位：秒）
-	MaxSize			int32				// 连接池最大连接数
-	InitSize		int32				// 连接池初始连接数
+	DialTimeout		int32				// 拨号超时/连接超时（单位：秒），默认值5秒
+	IdleTimeout		int32				// 空闲连接超时时长（单位：秒），默认值10秒
+	MaxSize			int32				// 连接池最大连接数，如果没有设置最大值，默认100个
+	InitSize		int32				// 连接池初始连接数，最小值为1
 	used			int32				// 已用连接数
 	idle			int32				// 空闲连接数（即在 clients 中的连接数）
 	assessTime		int64				// 最近异常调用Get或者Put的时间，根据它来判定该池是否活跃
 	closed			int32				// 关闭连接池
 	clients chan *ThriftConn			// thrift连接队列
+}
+
+// 创建thrift连接池，总是返回非nil值
+// 注意在使用完后，应调用连接池的成员函数 Close 释放创建连接池时所分配的资源
+func NewThriftPool(endpoint string, dialTimeout, idleTimeout, maxSize, initSize int32) *ThriftPool {
+	thriftPool := new(ThriftPool)
+	thriftPool.Endpoint = endpoint
+	if dialTimeout < 1 {
+		thriftPool.DialTimeout = 5
+	} else {
+		thriftPool.DialTimeout = dialTimeout
+	}
+	if idleTimeout < 1 {
+		thriftPool.IdleTimeout = 10
+	} else {
+		thriftPool.IdleTimeout = idleTimeout
+	}
+	if maxSize < 1 {
+		thriftPool.MaxSize = 100
+	} else if maxSize <= (initSize*2) {
+		thriftPool.MaxSize = initSize * 2
+	} else {
+		thriftPool.MaxSize = maxSize
+	}
+	if initSize < 1 {
+		thriftPool.InitSize = 1
+	} else {
+		thriftPool.InitSize = initSize
+	}
+
+	thriftPool.used = 0
+	thriftPool.idle = 0
+	thriftPool.closed = 0
+	thriftPool.clients = make(chan *ThriftConn, thriftPool.MaxSize)
+
+	go thriftPool.releaseIdleConn()
+	return thriftPool
 }
 
 func (t *ThriftConn) GetEndpoint() string {
@@ -65,7 +102,13 @@ func (t *ThriftConn) IsClose() bool {
 
 // 更新最近使用时间
 
-//
+// 从连接池取一个连接，
+// 应和 Put 一对一成对调用
+// 传参：
+// 1) context.Context，可以设置超时
+// 返回两个值：
+// 1) ThriftConn 指针
+// 2) 错误信息
 func (t *ThriftPool) Get(ctx context.Context) (*ThriftConn, error) {
 	return t.get(ctx, false)
 }
@@ -115,6 +158,12 @@ func (t *ThriftPool) get(ctx context.Context, doNotNew bool) (*ThriftConn, error
 	}
 }
 
+// 连接用完后归还回池，应和 Get 一对一成对调用
+// 约束：同一 conn 不应同时被多个协程使用
+// 传参：
+// ThriftConn指针
+// 返回值：
+// 2) 错误信息
 func (t *ThriftPool) Put(conn *ThriftConn) error {
 	return t.put(conn, false)
 }
@@ -189,16 +238,11 @@ func (t *ThriftPool) Close() {
 	}
 
 	close(t.clients)
-	for {
-		select {
-		case conn := <- t.clients:
-			if conn == nil {
-				continue
-			}
-			_ = conn.Close()
-		default:
-			return
+	for conn := range t.clients {
+		if conn == nil {
+			continue
 		}
+		_ = conn.Close()
 	}
 }
 
