@@ -1,4 +1,4 @@
-// Package thriftpool
+// Package thriftpool provides a pool of thrift clients
 package thriftpool
 
 import (
