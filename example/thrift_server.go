@@ -20,7 +20,7 @@ type EchoServer struct {
 
 // 接口Echo的实现
 func (e *EchoServer) Echo(req *echo.EchoReq) (*echo.EchoRes, error) {
-	fmt.Printf("message from client: %v\n", req.GetMsg())
+	//fmt.Printf("message from client: %v\n", req.GetMsg())
 
 	res := &echo.EchoRes{
 		Msg: "success",
