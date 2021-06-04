@@ -114,7 +114,4 @@ func request(index int) {
 	}
 	_ = thriftPool.Put(thriftConn)
 	atomic.AddInt32(&numSuccessRequests, 1)
-	//if index == 0 {
-	//	fmt.Printf("call res:%s\n", res.Msg)
-	//}
 }
