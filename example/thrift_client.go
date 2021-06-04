@@ -2,7 +2,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"git.apache.org/thrift.git/lib/go/thrift"
