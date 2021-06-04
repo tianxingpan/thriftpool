@@ -2,7 +2,6 @@
 package thriftpool
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"git.apache.org/thrift.git/lib/go/thrift"
@@ -104,16 +103,14 @@ func (t *ThriftConn) IsClose() bool {
 
 // 从连接池取一个连接，
 // 应和 Put 一对一成对调用
-// 传参：
-// 1) context.Context，可以设置超时
 // 返回两个值：
 // 1) ThriftConn 指针
 // 2) 错误信息
-func (t *ThriftPool) Get(ctx context.Context) (*ThriftConn, error) {
-	return t.get(ctx, false)
+func (t *ThriftPool) Get() (*ThriftConn, error) {
+	return t.get(false)
 }
 
-func (t *ThriftPool) get(ctx context.Context, doNotNew bool) (*ThriftConn, error) {
+func (t *ThriftPool) get(doNotNew bool) (*ThriftConn, error) {
 	accessTime := time.Now().Unix()
 	atomic.StoreInt64(&t.assessTime, accessTime)
 	curUsed := t.addUsed()
@@ -128,7 +125,8 @@ func (t *ThriftPool) get(ctx context.Context, doNotNew bool) (*ThriftConn, error
 		}
 		if curUsed > t.MaxSize {
 			newUsed := t.subUsed()
-			return nil, errors.New(fmt.Sprintf("thriftpool empty, used:%d/%d", curUsed, newUsed))
+			return nil, errors.New(fmt.Sprintf("thriftpool empty, used:%d/%d, init:%d, max:%s",
+				curUsed, newUsed, t.InitSize, t.MaxSize))
 		}
 		var err error
 		var client *thrift.TSocket
@@ -261,13 +259,14 @@ func (t *ThriftPool) releaseIdleConn() {
 		// 当闲置连接大于在用连接，说明连接池比较空闲
 		if idleSize > initSize && usedSize < idleSize {
 			for i:=0; i<int(idleSize); i++ {
-				conn, _ := t.get(context.Background(), true)
+				conn, _ := t.get(true)
 				if conn == nil {
 					break
 				}
 				err := t.put(conn, true)
-				// TODO:错误处理
-				fmt.Println(err)
+				if err != nil {
+					fmt.Printf("relase idle Conn failed:%s\n", err.Error())
+				}
 			}
 		}
 	}
