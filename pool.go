@@ -12,17 +12,18 @@ import (
 // thrift连接
 // 约束：同一个conn不应该同时被多个协程使用
 type ThriftConn struct {
-	Endpoint	string			// 服务端的端点
-	closed		bool			// 为 true 表示已被关闭，这种状态的不能再使用和放回池
-	client		*thrift.TSocket	// thrift连接
-	usedTime	time.Time		// 最近使用时间
+	Endpoint	string				// 服务端的端点
+	closed		bool				// 为 true 表示已被关闭，这种状态的不能再使用和放回池
+	socket		*thrift.TSocket		// thrift连接
+	//transport	thrift.TTransport	// thrift transport
+	usedTime	time.Time			// 最近使用时间
 }
 
 // thrift连接池
 type ThriftPool struct {
 	Endpoint		string				// 服务端的端点
-	DialTimeout		int32				// 拨号超时/连接超时（单位：秒），默认值5秒
-	IdleTimeout		int32				// 空闲连接超时时长（单位：秒），默认值10秒
+	DialTimeout		time.Duration		// 拨号超时/连接超时
+	IdleTimeout		time.Duration		// 空闲连接超时时长，默认10s
 	MaxSize			int32				// 连接池最大连接数，如果没有设置最大值，默认100个
 	InitSize		int32				// 连接池初始连接数，最小值为1
 	used			int32				// 已用连接数
@@ -38,14 +39,14 @@ func NewThriftPool(endpoint string, dialTimeout, idleTimeout, maxSize, initSize 
 	thriftPool := new(ThriftPool)
 	thriftPool.Endpoint = endpoint
 	if dialTimeout < 1 {
-		thriftPool.DialTimeout = 5
+		thriftPool.DialTimeout = time.Duration(5) * time.Second
 	} else {
-		thriftPool.DialTimeout = dialTimeout
+		thriftPool.DialTimeout = time.Duration(dialTimeout) * time.Second
 	}
 	if idleTimeout < 1 {
-		thriftPool.IdleTimeout = 10
+		thriftPool.IdleTimeout = time.Duration(10) * time.Second
 	} else {
-		thriftPool.IdleTimeout = idleTimeout
+		thriftPool.IdleTimeout = time.Duration(idleTimeout) * time.Second
 	}
 	if maxSize < 1 {
 		thriftPool.MaxSize = 100
@@ -73,9 +74,13 @@ func (t *ThriftConn) GetEndpoint() string {
 	return t.Endpoint
 }
 
-func (t *ThriftConn) GetClient() *thrift.TSocket {
-	return t.client
+func (t *ThriftConn) GetSocket() *thrift.TSocket {
+	return t.socket
 }
+
+//func (t *ThriftConn) GetTransport() thrift.TTransport {
+//	return t.transport
+//}
 
 func (t *ThriftConn) GetUsedTime() int64 {
 	return t.usedTime.Unix()
@@ -92,7 +97,7 @@ func (t *ThriftConn) Close() error {
 		return nil
 	}
 	t.closed = true
-	return t.client.Close()
+	return t.socket.Close()
 }
 
 func (t *ThriftConn) IsClose() bool {
@@ -129,12 +134,12 @@ func (t *ThriftPool) get(doNotNew bool) (*ThriftConn, error) {
 				curUsed, newUsed, t.InitSize, t.MaxSize))
 		}
 		var err error
-		var client *thrift.TSocket
+		var socket *thrift.TSocket
 
 		if t.DialTimeout > 0 {
-			client, err = thrift.NewTSocketTimeout(t.Endpoint, time.Duration(t.DialTimeout) * time.Second)
+			socket, err = thrift.NewTSocketTimeout(t.Endpoint, t.DialTimeout)
 		} else {
-			client, err = thrift.NewTSocket(t.Endpoint)
+			socket, err = thrift.NewTSocket(t.Endpoint)
 		}
 
 		if err != nil {
@@ -142,7 +147,7 @@ func (t *ThriftPool) get(doNotNew bool) (*ThriftConn, error) {
 			return nil, err
 		}
 
-		err = client.Open()
+		err = socket.Open()
 		if err != nil {
 			// 错误错误处理
 			return nil, err
@@ -150,7 +155,7 @@ func (t *ThriftPool) get(doNotNew bool) (*ThriftConn, error) {
 		conn := new(ThriftConn)
 		conn.Endpoint = t.Endpoint
 		conn.closed = false
-		conn.client = client
+		conn.socket = socket
 		conn.usedTime = time.Now()
 		return conn, nil
 	}
@@ -310,16 +315,16 @@ func (t *ThriftPool) GetEndpoint() string {
 
 func (t *ThriftPool) SetIdleTimeout(timeout int32) {
 	if timeout < 1 {
-		t.IdleTimeout = 1
+		t.IdleTimeout = time.Duration(1) * time.Second
 	} else {
-		t.IdleTimeout = timeout
+		t.IdleTimeout = time.Duration(timeout) * time.Second
 	}
 }
 
 func (t *ThriftPool) SetDialTimeout(timeout int32) {
 	if timeout < 1 {
-		t.DialTimeout = 1
+		t.DialTimeout = time.Duration(1) * time.Second
 	} else {
-		t.DialTimeout = timeout
+		t.DialTimeout = time.Duration(timeout) * time.Second
 	}
 }

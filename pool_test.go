@@ -2,18 +2,17 @@
 package thriftpool
 
 import (
-	"context"
 	"testing"
 )
 
 func TestNewThriftPool(t *testing.T) {
 	pool := NewThriftPool("127.0.0.1:9898", 3, 5, 10, 1)
-	conn1, err := pool.Get(context.Background())
+	conn1, err := pool.Get()
 	if err != nil {
 		t.Errorf("The first pool.Get error:%s\n", err.Error())
 		return
 	}
-	conn2, err := pool.Get(context.Background())
+	conn2, err := pool.Get()
 	if err != nil {
 		t.Errorf("The second pool.Get error:%s\n", err.Error())
 		return

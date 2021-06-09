@@ -94,10 +94,10 @@ func request(index int) {
 		fmt.Printf("Get a Thrift connection from pool failed: %s\n", err.Error())
 		return
 	}
-	tClient := thriftConn.GetClient()
+	socket := thriftConn.GetSocket()
 	transF := thrift.NewTFramedTransportFactory(thrift.NewTTransportFactory())
 	protoF := thrift.NewTBinaryProtocolFactoryDefault()
-	useTrans := transF.GetTransport(tClient)
+	useTrans := transF.GetTransport(socket)
 	client := echo.NewEchoClientFactory(useTrans, protoF)
 
 	req := echo.EchoReq{Msg:"Hello"}
