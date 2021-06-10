@@ -39,14 +39,14 @@ func NewThriftPool(endpoint string, dialTimeout, idleTimeout, maxSize, initSize 
 	thriftPool := new(ThriftPool)
 	thriftPool.Endpoint = endpoint
 	if dialTimeout < 1 {
-		thriftPool.DialTimeout = time.Duration(5) * time.Second
+		thriftPool.DialTimeout = time.Duration(5000) * time.Millisecond
 	} else {
-		thriftPool.DialTimeout = time.Duration(dialTimeout) * time.Second
+		thriftPool.DialTimeout = time.Duration(dialTimeout) * time.Millisecond
 	}
 	if idleTimeout < 1 {
-		thriftPool.IdleTimeout = time.Duration(10) * time.Second
+		thriftPool.IdleTimeout = time.Duration(10000) * time.Millisecond
 	} else {
-		thriftPool.IdleTimeout = time.Duration(idleTimeout) * time.Second
+		thriftPool.IdleTimeout = time.Duration(idleTimeout) * time.Millisecond
 	}
 	if maxSize < 1 {
 		thriftPool.MaxSize = 100
@@ -315,16 +315,16 @@ func (t *ThriftPool) GetEndpoint() string {
 
 func (t *ThriftPool) SetIdleTimeout(timeout int32) {
 	if timeout < 1 {
-		t.IdleTimeout = time.Duration(1) * time.Second
+		t.IdleTimeout = time.Duration(1000) * time.Millisecond
 	} else {
-		t.IdleTimeout = time.Duration(timeout) * time.Second
+		t.IdleTimeout = time.Duration(timeout) * time.Millisecond
 	}
 }
 
 func (t *ThriftPool) SetDialTimeout(timeout int32) {
 	if timeout < 1 {
-		t.DialTimeout = time.Duration(1) * time.Second
+		t.DialTimeout = time.Duration(1000) * time.Millisecond
 	} else {
-		t.DialTimeout = time.Duration(timeout) * time.Second
+		t.DialTimeout = time.Duration(timeout) * time.Millisecond
 	}
 }

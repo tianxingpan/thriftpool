@@ -21,8 +21,8 @@ var (
 
 	numRequests = flag.Uint("n", 1, "Number of requests to perform.")
 	numConcurrency = flag.Uint("c", 1, "Number of multiple requests to make a time.")
-	dialTimeout = flag.Uint("dial_timeout", 5, "Dial timeout in seconds.")
-	idleTimeout = flag.Uint("idle_timeout", 5, "Idle timeout in seconds.")
+	dialTimeout = flag.Uint("dial_timeout", 5000, "Dial timeout in Millisecond.")
+	idleTimeout = flag.Uint("idle_timeout", 5000, "Idle timeout in Millisecond.")
 )
 
 var (
