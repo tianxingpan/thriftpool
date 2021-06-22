@@ -118,7 +118,7 @@ func request(index int) {
 	thriftConn, err := thriftPool.Get()
 	if err != nil {
 		atomic.AddInt32(&numPoolFailedRequests, 1)
-		//fmt.Printf("Get a Thrift connection from pool failed: %s\n", err.Error())
+		fmt.Printf("Get a Thrift connection from pool failed: %s\n", err.Error())
 		return
 	}
 	socket := thriftConn.GetSocket()
