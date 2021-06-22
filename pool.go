@@ -126,11 +126,12 @@ func (t *ThriftPool) get(doNotNew bool) (*ThriftConn, error) {
 		return conn, nil
 	default:
 		if doNotNew {
+			t.subUsed()
 			return nil, nil
 		}
 		if curUsed > t.MaxSize {
 			newUsed := t.subUsed()
-			return nil, errors.New(fmt.Sprintf("thriftpool empty, used:%d/%d, init:%d, max:%s",
+			return nil, errors.New(fmt.Sprintf("thriftpool empty, used:%d/%d, init:%d, max:%d",
 				curUsed, newUsed, t.InitSize, t.MaxSize))
 		}
 		var err error
@@ -144,12 +145,14 @@ func (t *ThriftPool) get(doNotNew bool) (*ThriftConn, error) {
 
 		if err != nil {
 			// 错误处理还得继续
+			t.subUsed()
 			return nil, err
 		}
 
 		err = socket.Open()
 		if err != nil {
 			// 错误错误处理
+			t.subUsed()
 			return nil, err
 		}
 		conn := new(ThriftConn)
@@ -327,4 +330,9 @@ func (t *ThriftPool) SetDialTimeout(timeout int32) {
 	} else {
 		t.DialTimeout = time.Duration(timeout) * time.Millisecond
 	}
+}
+
+func (t *ThriftPool) GetChanSize() int32 {
+	tmp := len(t.clients)
+	return int32(tmp)
 }
