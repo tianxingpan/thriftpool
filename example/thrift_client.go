@@ -65,13 +65,12 @@ func main() {
 	}
 	wg.Wait()
 
-	thriftPool.Close()
 	consumerDuration := time.Since(startTime)
-
 	// 验证连接池回收连接
 	idle := int32(*idleTimeout)
-	time.Sleep(time.Duration(idle * 3) * time.Millisecond)
+	time.Sleep(time.Duration(idle * 20) * time.Millisecond)
 	stopChan <-true
+	thriftPool.Close()
 	close(stopChan)
 
 	s := int(consumerDuration.Seconds())

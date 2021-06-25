@@ -82,13 +82,14 @@ func (t *ThriftConn) GetSocket() *thrift.TSocket {
 //	return t.transport
 //}
 
+// 纳秒
 func (t *ThriftConn) GetUsedTime() int64 {
-	return t.usedTime.Unix()
+	return t.usedTime.UnixNano()
 }
 
 func (t *ThriftConn) UpdateUsedTime() int64 {
 	t.usedTime = time.Now()
-	return t.usedTime.Unix()
+	return t.usedTime.UnixNano()
 }
 
 // 关闭thrift连接
@@ -203,7 +204,7 @@ func (t *ThriftPool) put(conn *ThriftConn, doNotNew bool) error {
 	if !doNotNew {
 		nowTime = conn.UpdateUsedTime()
 	} else {
-		nowTime = time.Now().Unix()
+		nowTime = time.Now().UnixNano()
 	}
 
 	if idle > t.InitSize {
@@ -250,6 +251,8 @@ func (t *ThriftPool) Close() {
 		}
 		_ = conn.Close()
 	}
+	t.used = 0
+	t.idle = 0
 }
 
 // 回收闲置资源
